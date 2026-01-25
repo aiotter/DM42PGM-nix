@@ -1,0 +1,78 @@
+{
+  "nodes": {
+    "dm42pgm": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1765804499,
+        "narHash": "sha256-mZvL6kVjaf2FN2s8MfSx9ZNFLD4MFe/r4/zNjifpZcA=",
+        "owner": "swissmicros",
+        "repo": "DM42PGM",
+        "rev": "3270592f2be6f6d0316e1a0f482a1faecc14aaa9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "swissmicros",
+        "repo": "DM42PGM",
+        "type": "github"
+      }
+    },
+    "free42": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1763103573,
+        "narHash": "sha256-mXMvnaGlDsT+MK0OJUqJ/SazelfCiB+ZbApvlzg1tf0=",
+        "owner": "swissmicros",
+        "repo": "free42",
+        "rev": "a7c705e476cfd6d83d7d8b90042999f386367813",
+        "type": "github"
+      },
+      "original": {
+        "owner": "swissmicros",
+        "repo": "free42",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1769237874,
+        "narHash": "sha256-saOixpqPT4fiE/M8EfHv9I98f3sSEvt6nhMJ/z0a7xI=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "523257564973361cc3e55e3df3e77e68c20b0b80",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-gcc-arm-embedded-10": {
+      "locked": {
+        "lastModified": 1742707865,
+        "narHash": "sha256-RVQQZy38O3Zb8yoRJhuFgWo/iDIDj0hEdRTVfhOtzRk=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "dd613136ee91f67e5dba3f3f41ac99ae89c5406b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "dd613136ee91f67e5dba3f3f41ac99ae89c5406b",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "dm42pgm": "dm42pgm",
+        "free42": "free42",
+        "nixpkgs": "nixpkgs",
+        "nixpkgs-gcc-arm-embedded-10": "nixpkgs-gcc-arm-embedded-10"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
