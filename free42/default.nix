@@ -1,4 +1,5 @@
 {
+  lib,
   stdenv,
   src,
   gcc,
@@ -16,7 +17,8 @@ stdenv.mkDerivation {
     gcc-arm-embedded
   ];
 
-  patches = [ ./free42.patch ];
+  prePatch = "cp -r ${./src}/. .";
+  patches = lib.fileset.toList ./patch;
 
   buildPhase = "cd console; ./armbuild";
 
