@@ -13,6 +13,14 @@ static inline void core_key_rename(int cmd_id, const char **name, int *name_len)
             *name = ">>";
             *name_len = 2;
             return;
+        case CMD_SLN:
+            *name = "<< n";
+            *name_len = 4;
+            return;
+        case CMD_SRN:
+            *name = ">> n";
+            *name_len = 4;
+            return;
         case CMD_HEXM:
             *name = "0xff";
             *name_len = 4;
