@@ -1,0 +1,77 @@
+name: Nix flake check
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare cache helpers
+        id: cache-helpers
+        run: |
+          # actions/cache uses tar; sudo is needed to restore and save /nix paths.
+          cache_bin="${RUNNER_TEMP:?}/nix-cache-bin"
+          mkdir -p ~/.cache/nix "$cache_bin"
+          echo "path=$cache_bin:$PATH" >> "$GITHUB_OUTPUT"
+
+          tar_path=$(command -v tar)
+          cat > "$cache_bin/tar" <<EOF
+          #!/bin/sh
+          exec sudo "$tar_path" "\$@"
+          EOF
+          chmod +x "$cache_bin/tar"
+
+      - name: Restore Nix store cache
+        uses: actions/cache@v4
+        env:
+          PATH: ${{ steps.cache-helpers.outputs.path }}
+        with:
+          path: |
+            /nix/store
+            /nix/var/nix/db
+          key: ${{ runner.os }}-${{ runner.arch }}-nix-store-${{ hashFiles('flake.lock') }}-${{ hashFiles('**', '!.git/**') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-nix-store-${{ hashFiles('flake.lock') }}-
+            ${{ runner.os }}-${{ runner.arch }}-nix-store-
+
+      - name: Restore Nix state cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/nix
+          key: ${{ runner.os }}-${{ runner.arch }}-nix-state-${{ hashFiles('flake.lock') }}-${{ hashFiles('**', '!.git/**') }}
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            # Keep outputs of retained dependency derivations, including compilers and libraries.
+            keep-outputs = true
+            keep-derivations = true
+
+      - name: Pin checks as GC roots
+        run: |
+          # Root the check .drv files so their source inputs and dependency derivations survive GC.
+          # keep-outputs also retains the compiled outputs of those dependency derivations.
+          system=$(nix eval --impure --raw --expr builtins.currentSystem)
+          targets=$(nix eval --raw ".#checks.$system" --apply \
+            'checks: builtins.concatStringsSep "\n" (builtins.attrNames checks)')
+          sudo mkdir -p /nix/var/nix/gcroots/flake-checks
+          while IFS= read -r target; do
+            [ -n "$target" ] || continue
+            drv_path=$(nix eval --raw ".#checks.$system.$target.drvPath")
+            sudo ln -sfn "$drv_path" "/nix/var/nix/gcroots/flake-checks/$target"
+          done <<< "$targets"
+
+      - run: nix flake check --no-write-lock-file --print-build-logs
+
+      - name: Garbage collect unused Nix store paths
+        run: |
+          nix-collect-garbage -d
+          nix store optimise
