@@ -3,7 +3,6 @@
 This repository provides a Nix build chain for the DM42/DM42n program using the
 official SwissMicros [Free42](https://github.com/swissmicros/free42) and
 [DM42PGM](https://github.com/swissmicros/DM42PGM) sources.
-The default build uses the revisions pinned in `flake.lock`.
 The same build chain can also use a custom Free42 fork by overriding the Free42 input.
 
 ## Build from the official sources
@@ -16,6 +15,12 @@ nix build github:aiotter/DM42PGM-nix
 
 This produces `.pgm` for DM42 and `.pg5` for DM42n in `result/`.
 For DM42-3.26, both files were verified to be byte-for-byte identical to the official binaries.
+
+To verify that both firmware files match the official SHA-256 hashes, run:
+
+```sh
+nix flake check github:aiotter/DM42PGM-nix
+```
 
 ## Build with a custom Free42 fork
 
