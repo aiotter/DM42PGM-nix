@@ -1,24 +1,22 @@
 {
   lib,
   stdenv,
-  src,
+
   gcc,
   gcc-arm-embedded,
+
+  src,
+  pname ? "free42",
+  version ? lib.fileContents "${src}/gtk/VERSION",
 }:
 
 stdenv.mkDerivation {
-  pname = "free42-mod";
-  version = "unstable";
-
-  inherit src;
+  inherit pname version src;
 
   nativeBuildInputs = [
     gcc
     gcc-arm-embedded
   ];
-
-  prePatch = "cp -r ${./src}/. .";
-  patches = lib.fileset.toList ./patch;
 
   buildPhase = "cd console; ./armbuild";
 

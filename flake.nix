@@ -47,16 +47,23 @@
             }).gcc-arm-embedded-10;
         in
         {
-          default = self.packages.${system}.dm42pgm;
+          default = pkgs.symlinkJoin {
+            name = "DM42PGM";
+            paths = with self.packages.${system}; [ dm42 dm42n ];
+          };
 
           free42-lib = pkgs.callPackage ./free42 {
             src = free42;
           };
 
-          dm42pgm = pkgs.callPackage ./dm42pgm {
+          dm42 = pkgs.callPackage ./dm42pgm {
             src = dm42pgm;
-            dmcp5 = true;
+            dmcp5 = false;
             inherit (self.packages.${system}) free42-lib;
+          };
+
+          dm42n = self.packages.${system}.dm42.override {
+            dmcp5 = true;
           };
         }
       );

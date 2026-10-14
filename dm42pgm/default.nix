@@ -1,6 +1,7 @@
 {
   lib,
   stdenv,
+
   gcc-arm-embedded,
   perlPackages,
 
@@ -8,20 +9,30 @@
   free42-lib,
 
   dmcp5 ? true,
+
+  pname ? "DM42",
+  version ? builtins.head (
+    builtins.match ''.*#define[[:space:]]+DM42_VERSION[[:space:]]+"([^"]+)".*'' (
+      builtins.readFile "${src}/dm/main.h"
+    )
+  ),
 }:
 
 stdenv.mkDerivation rec {
-  pname = "DM42-mod";
-  version = "unstable";
+  __structuredAttrs = true;
 
-  inherit src;
+  inherit pname version src;
 
   nativeBuildInputs = [
     gcc-arm-embedded
     perlPackages.ArchiveZip
   ];
 
-  makeFlags = (lib.optional dmcp5 "DMCP5=1") ++ [ "TARGET=${pname}" ];
+  makeFlags = (lib.optional dmcp5 "DMCP5=1") ++ [
+    # The official DM42n firmware uses libfree42_bcd.a.
+    "LIBS=lib/${if dmcp5 then "libfree42_bcd.a" else "libfree42_bcd_rel.a"} lib/gcc111libbid_hard.a"
+    "TARGET=${pname}-${version}"
+  ];
 
   # Workaround flags for building with the latest gcc-arm-embedded.
   # Note: the build currently succeeds, but the resulting binary is rejected by DM42n.
@@ -35,10 +46,17 @@ stdenv.mkDerivation rec {
   # '';
 
   prePatch = lib.optionalString dmcp5 "cat patch/dmcp5_*.patch | patch -p2";
-  postPatch = "cp ${free42-lib}/{libfree42_bcd.a,libfree42_bcd_rel.a} lib";
+  postPatch = ''
+    # The official firmware is built from the code before license headers are added.
+    # Removing these headers produced a binary identical to the official firmware.
+    find . -type f \( -name '*.c' -o -name '*.cc' -o -name '*.h' -o -name '*.s' \) \
+      -exec gawk -i inplace -f ${./strip-license-headers.awk} {} +
+
+    cp ${free42-lib}/{libfree42_bcd.a,libfree42_bcd_rel.a} lib
+  '';
 
   installPhase = ''
     mkdir -p $out
-    find build -name '*.pgm' -or -name '*.pg5' -exec mv {} $out \;
+    cp build/${pname}-${version}.${if dmcp5 then "pg5" else "pgm"} "$out/"
   '';
 }
