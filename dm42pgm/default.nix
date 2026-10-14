@@ -66,6 +66,8 @@ stdenv.mkDerivation (
 
     prePatch = lib.optionalString dmcp5 "cat patch/dmcp5_*.patch | patch -p2";
     postPatch = ''
+      patchShebangs --build bin
+
       # The official firmware is built from the code before license headers are added.
       # Removing these headers produced a binary identical to the official firmware.
       find . -type f \( -name '*.c' -o -name '*.cc' -o -name '*.h' -o -name '*.s' \) \

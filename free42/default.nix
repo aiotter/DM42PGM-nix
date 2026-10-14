@@ -30,6 +30,10 @@ stdenv.mkDerivation (finalAttrs: rec {
     gcc-arm-embedded
   ];
 
+  postPatch = ''
+    patchShebangs --build console/armbuild
+  '';
+
   buildPhase = "cd console; ./armbuild";
 
   installPhase = ''
