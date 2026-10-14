@@ -32,6 +32,8 @@ nix build github:aiotter/DM42PGM-nix --override-input free42 github:aiotter/dm42
 
 This overrides the Free42 input for that build without changing `flake.lock`.
 
+Even when sources are overridden with `--override-input`, `nix flake check` builds from the pinned official sources and verifies the firmware hashes.
+
 ## Install on a DM42/DM42n
 
 1. Mount your calculator (`SETUP` -> `System` -> `Reset to DMCP menu` -> `Activate USB Disk`).

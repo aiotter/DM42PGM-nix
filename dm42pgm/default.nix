@@ -42,6 +42,14 @@ stdenv.mkDerivation (
 
       inherit free42-lib;
       srcHasOfficialHash = src.hash == (finalAttrs.src.hash or finalAttrs.src.narHash or null);
+
+      # Keep the official sources available for checks when overrideAttrs replaces src or free42-lib.
+      original = finalAttrs.finalPackage.overrideAttrs (previousAttrs: {
+        inherit src;
+        passthru = previousAttrs.passthru // {
+          free42-lib = finalAttrs.passthru.free42-lib.original;
+        };
+      });
     };
 
     nativeBuildInputs = [

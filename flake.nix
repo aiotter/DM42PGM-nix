@@ -76,8 +76,8 @@
 
       checks = lib.genAttrs lib.systems.flakeExposed (
         system: with self.packages.${system}; {
-          dm42 = dm42.overrideAttrs { doCheck = true; };
-          dm42n = dm42n.overrideAttrs { doCheck = true; };
+          dm42 = dm42.original;
+          dm42n = dm42n.original;
         }
       );
     };

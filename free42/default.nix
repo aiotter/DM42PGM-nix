@@ -18,7 +18,12 @@ stdenv.mkDerivation (finalAttrs: rec {
     hash = "sha256-mXMvnaGlDsT+MK0OJUqJ/SazelfCiB+ZbApvlzg1tf0=";
   };
 
-  passthru.srcHasOfficialHash = src.hash == (finalAttrs.src.hash or finalAttrs.src.narHash or null);
+  passthru = {
+    srcHasOfficialHash = src.hash == (finalAttrs.src.hash or finalAttrs.src.narHash or null);
+
+    # Keep the official source available for checks when overrideAttrs replaces src.
+    original = finalAttrs.finalPackage.overrideAttrs { inherit src; };
+  };
 
   nativeBuildInputs = [
     gcc
