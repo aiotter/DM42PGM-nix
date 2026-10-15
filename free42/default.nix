@@ -4,7 +4,6 @@
   fetchFromGitHub,
 
   gcc,
-  gcc-arm-embedded,
 }:
 
 stdenv.mkDerivation (finalAttrs: rec {
@@ -19,16 +18,11 @@ stdenv.mkDerivation (finalAttrs: rec {
   };
 
   passthru = {
-    srcHasOfficialHash = src.hash == (finalAttrs.src.hash or finalAttrs.src.narHash or null);
-
     # Keep the official source available for checks when overrideAttrs replaces src.
     original = finalAttrs.finalPackage.overrideAttrs { inherit src; };
   };
 
-  nativeBuildInputs = [
-    gcc
-    gcc-arm-embedded
-  ];
+  nativeBuildInputs = [ gcc ];
 
   postPatch = ''
     patchShebangs --build console/armbuild

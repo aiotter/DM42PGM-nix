@@ -3,7 +3,6 @@
   stdenv,
   fetchFromGitHub,
 
-  gcc-arm-embedded,
   perlPackages,
 
   free42-lib,
@@ -34,14 +33,14 @@ stdenv.mkDerivation (
     };
 
     passthru = {
+      # NAR hashes of the official firmware files for testers.runCommand.
       expectedFirmwareHash =
         if dmcp5 then
-          "8209836f2e581cc194b16bb4dc0a6f0adf18fb9e6dc947940333c263decadc57"
+          "sha256-wHRDXODOyOjL9DCfI0Gi/saGWFuCKXJH4BsaYRYOEUw="
         else
-          "b4e170442169ef625443a1b00ec827112be168ec45cdb1408a49f11b5136ed5d";
+          "sha256-y5gI8B+uw3HIRyZjZb0brGV/HgbLPHCvjVLUzUOjE80=";
 
       inherit free42-lib;
-      srcHasOfficialHash = src.hash == (finalAttrs.src.hash or finalAttrs.src.narHash or null);
 
       # Keep the official sources available for checks when overrideAttrs replaces src or free42-lib.
       original = finalAttrs.finalPackage.overrideAttrs (previousAttrs: {
@@ -53,7 +52,6 @@ stdenv.mkDerivation (
     };
 
     nativeBuildInputs = [
-      gcc-arm-embedded
       perlPackages.ArchiveZip
     ];
 
@@ -74,18 +72,6 @@ stdenv.mkDerivation (
         -exec gawk -i inplace -f ${./strip-license-headers.awk} {} +
 
       cp ${finalAttrs.passthru.free42-lib}/{libfree42_bcd.a,libfree42_bcd_rel.a} lib
-    '';
-
-    doCheck =
-      let
-        inherit (finalAttrs.passthru) srcHasOfficialHash free42-lib;
-      in
-      srcHasOfficialHash && free42-lib.srcHasOfficialHash;
-
-    checkPhase = ''
-      runHook preCheck
-      echo "${finalAttrs.passthru.expectedFirmwareHash} *build/${firmwareFileName}" | sha256sum --check
-      runHook postCheck
     '';
 
     installPhase = ''

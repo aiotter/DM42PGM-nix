@@ -47,7 +47,7 @@ let
   ];
 in
 stdenv.mkDerivation {
-  pname = "gcc-arm-embedded-xpack";
+  pname = "dmcp-toolchain";
   inherit version;
   srcs = map (component: "${sources}/src/${component}.tar.bz2") [
     "gcc"
@@ -189,13 +189,13 @@ stdenv.mkDerivation {
   '';
 
   meta = {
-    description = "GNU Arm Embedded GCC 10.3 for DM42 and DM42n firmware";
+    description = "GNU Arm Embedded GCC 10.3 for DMCP and DMCP5 applications";
     homepage = "https://developer.arm.com/downloads/-/gnu-rm";
     license = with lib.licenses; [
       gpl3Plus
       lgpl3Plus
       bsd2
     ];
-    platforms = import ./platforms.nix;
+    platforms = lib.systems.flakeExposed;
   };
 }

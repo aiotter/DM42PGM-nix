@@ -16,7 +16,7 @@ nix build github:aiotter/DM42PGM-nix
 This produces `.pgm` for DM42 and `.pg5` for DM42n in `result/`.
 For DM42-3.26, both files were verified to be byte-for-byte identical to the official binaries.
 
-To verify that both firmware files match the official SHA-256 hashes, run:
+To verify that both firmware files match the official binaries, run:
 
 ```sh
 nix flake check github:aiotter/DM42PGM-nix
