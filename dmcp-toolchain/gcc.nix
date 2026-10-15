@@ -1,8 +1,8 @@
 {
   lib,
   stdenv,
-  fetchzip,
   fetchpatch,
+  source,
   bison,
   flex,
   m4,
@@ -13,43 +13,14 @@
   zlib,
 }:
 
-let
-  version = "10.3-2021.10";
-  sources = fetchzip {
-    name = "gcc-arm-none-eabi-${version}-source";
-    url = "https://developer.arm.com/-/media/Files/downloads/gnu-rm/${version}/gcc-arm-none-eabi-${version}-src.tar.bz2";
-    hash = "sha256-eaQStkUA7IkFWivHApKrLDq5mUM14hQSuNPa8OKXYiM=";
-  };
-  commonConfigureFlags = [
-    "--build=${stdenv.buildPlatform.config}"
-    "--host=${stdenv.hostPlatform.config}"
-    "--target=arm-none-eabi"
-    "--enable-languages=c,c++"
-    # Both calculators use this CPU/ABI.
-    "--with-arch=armv7e-m"
-    "--with-mode=thumb"
-    "--with-fpu=fpv4-sp-d16"
-    "--with-float=hard"
-    "--disable-libstdcxx-pch"
-    "--disable-nls"
-    "--disable-shared"
-    "--disable-tls"
-    "--disable-werror"
-    "--with-newlib"
-    "--with-native-system-header-dir=/include"
-    "--with-system-zlib"
-    "--with-sysroot=${builtins.placeholder "out"}/arm-none-eabi"
-    # The official startup code omits TM clone registration.
-    "--disable-tm-clone-registry"
-    "--disable-multilib"
-    "--disable-newlib-supplied-syscalls"
-    "--enable-newlib-retargetable-locking"
-  ];
-in
 stdenv.mkDerivation {
-  pname = "dmcp-toolchain";
-  inherit version;
-  srcs = map (component: "${sources}/src/${component}.tar.bz2") [
+  pname = "dmcp-gcc-compiler";
+  inherit (source) version;
+  outputs = [
+    "out"
+    "buildSupport"
+  ];
+  srcs = map (component: "${source}/src/${component}.tar.bz2") [
     "gcc"
     "binutils"
     "newlib"
@@ -72,7 +43,6 @@ stdenv.mkDerivation {
   # GCC 10 passes translated diagnostic strings to its own printf-like callbacks.
   hardeningDisable = [ "format" ];
   enableParallelBuilding = true;
-  # Newlib's install rules rely on directory creation order.
   enableParallelInstalling = false;
   dontDisableStatic = true;
   dontStrip = true;
@@ -105,30 +75,34 @@ stdenv.mkDerivation {
     })
   ];
 
-  preFixupPhases = [
-    "prepareNanoPhase"
-    "configurePhase"
-    "buildPhase"
-    "installPhase"
-  ];
-
   preConfigure = ''
     mkdir build
     cd build
     configureScript=../configure
   '';
-  configureFlags = commonConfigureFlags ++ [
-    "--enable-newlib-io-long-long"
-    "--enable-newlib-io-c99-formats"
-    "--enable-newlib-register-fini"
+  configureFlags = [
+    "--build=${stdenv.buildPlatform.config}"
+    "--host=${stdenv.hostPlatform.config}"
+    "--target=arm-none-eabi"
+    "--enable-languages=c,c++"
+    # Both calculators use this CPU/ABI.
+    "--with-arch=armv7e-m"
+    "--with-mode=thumb"
+    "--with-fpu=fpv4-sp-d16"
+    "--with-float=hard"
+    "--disable-libstdcxx-pch"
+    "--disable-nls"
+    "--disable-shared"
+    "--disable-tls"
+    "--disable-werror"
+    "--with-newlib"
+    "--with-native-system-header-dir=/include"
+    "--with-system-zlib"
+    "--with-sysroot=${builtins.placeholder "out"}/arm-none-eabi"
+    # The official startup code omits TM clone registration.
+    "--disable-tm-clone-registry"
+    "--disable-multilib"
   ];
-
-  postConfigure = ''
-    # Split Newlib into sections without changing libgcc's startup objects.
-    cat >> Makefile <<'EOF'
-    configure-target-newlib all-target-newlib configure-target-libgloss all-target-libgloss: private CFLAGS_FOR_TARGET = -g -O2 -ffunction-sections -fdata-sections
-    EOF
-  '';
   makeFlags = [
     "MAKEINFO=true"
     "M4=${lib.getExe m4}"
@@ -138,64 +112,28 @@ stdenv.mkDerivation {
     "all-gas"
     "all-ld"
     "all-gcc"
-    "all-target-newlib"
-    "all-target-libgloss"
-    "all-target-libgcc"
-    "all-target-libstdc++-v3"
   ];
   installTargets = [
     "install-binutils"
     "install-gas"
     "install-ld"
     "install-gcc"
-    "install-target-newlib"
-    "install-target-libgloss"
-    "install-target-libgcc"
-    "install-target-libstdc++-v3"
   ];
 
-  prepareNanoPhase = ''
-    runHook prePrepareNano
-    # Remove only Newlib and libgloss configuration and build products.
-    make -j1 MAKEINFO=true distclean-target-libgloss distclean-target-newlib
-
-    # Keep other modules' Makefiles so their configure/build steps stay cached.
-    configureFlags=(
-      --no-recursion
-      ${lib.escapeShellArgs commonConfigureFlags}
-      --enable-newlib-reent-small --disable-newlib-fvwrite-in-streamio
-      --disable-newlib-fseek-optimization --disable-newlib-wide-orient
-      --enable-newlib-nano-malloc --disable-newlib-unbuf-stream-opt
-      --enable-lite-exit --enable-newlib-global-atexit
-      --enable-newlib-nano-formatted-io
-    )
-    export CFLAGS_FOR_TARGET="-g -Os -ffunction-sections -fdata-sections"
-    buildFlags=(all-target-newlib all-target-libgloss)
-    installTargets=(install-target-newlib install-target-libgloss)
-    prefix="$NIX_BUILD_TOP/newlib-nano-install"
-    preConfigure=
-    postConfigure=
-    postInstall=${lib.escapeShellArg ''
-      nanoPrefix="$prefix/arm-none-eabi"
-      mkdir -p "$out/arm-none-eabi/include/newlib-nano"
-      cp "$nanoPrefix/include/newlib.h" "$out/arm-none-eabi/include/newlib-nano/"
-      for library in "$nanoPrefix/lib/"*.a; do
-        name=$(basename "$library" .a)
-        cp "$library" "$out/arm-none-eabi/lib/''${name}_nano.a"
-      done
-      prefix="$out"
-    ''}
-    runHook postPrepareNano
+  postInstall = ''
+    # libgcc uses GCC's generated target headers and configuration, not its objects.
+    mkdir -p "$buildSupport/gcc"
+    cp gcc/*.{h,def} gcc/libgcc.mvars "$buildSupport/gcc/"
+    cp -r gcc/include "$buildSupport/gcc/"
   '';
-
+  passthru = {
+    isGNU = true;
+    langC = true;
+    langCC = true;
+  };
   meta = {
-    description = "GNU Arm Embedded GCC 10.3 for DMCP and DMCP5 applications";
-    homepage = "https://developer.arm.com/downloads/-/gnu-rm";
-    license = with lib.licenses; [
-      gpl3Plus
-      lgpl3Plus
-      bsd2
-    ];
+    inherit (source.meta) homepage license;
+    description = "GNU Arm Embedded C/C++ compiler and Binutils for DMCP applications";
     platforms = lib.systems.flakeExposed;
   };
 }
