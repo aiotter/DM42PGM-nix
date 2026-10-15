@@ -22,7 +22,7 @@ stdenv.mkDerivation (finalAttrs: rec {
     original = finalAttrs.finalPackage.overrideAttrs { inherit src; };
   };
 
-  nativeBuildInputs = [ gcc ];
+  depsBuildBuild = [ gcc ];
 
   postPatch = ''
     patchShebangs --build console/armbuild
