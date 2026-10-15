@@ -1,0 +1,25 @@
+--- a/gcc/system.h
++++ b/gcc/system.h
+@@ -203,11 +203,6 @@
+ #endif
+ #endif
+ 
+-/* There are an extraordinary number of issues with <ctype.h>.
+-   The last straw is that it varies with the locale.  Use libiberty's
+-   replacement instead.  */
+-#include "safe-ctype.h"
+-
+ #include <sys/types.h>
+ 
+ #include <errno.h>
+@@ -237,6 +232,10 @@
+ # include <utility>
+ #endif
+ 
++/* Load C++ standard headers before safe-ctype.h so its ctype macros
++   do not interfere with the host libc++ locale overloads.  */
++#include "safe-ctype.h"
++
+ /* Some of glibc's string inlines cause warnings.  Plus we'd rather
+    rely on (and therefore test) GCC's string builtins.  */
+ #define __NO_STRING_INLINES
