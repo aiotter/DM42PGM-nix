@@ -69,6 +69,15 @@ To flash an existing program file without rebuilding it:
 nix run .#flasher -- path/to/program.pg5
 ```
 
+Set `FAST=1` to enable fast mode, which took about 20 seconds on the tested DM42n:
+
+```sh
+FAST=1 nix run .#flasher -- path/to/program.pg5
+```
+
+Fast mode skips the device-requested polling delays, which can cause USB errors and interrupt flashing.
+If this happens, retry without `FAST`.
+
 Unlike dfu-util, the flasher follows Load Program's write sequence, marking the program valid only after all data has been written.
 This lets the calculator detect an incomplete update if writing is interrupted.
 

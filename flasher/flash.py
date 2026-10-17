@@ -13,6 +13,7 @@ on a partial program.
 """
 
 import logging
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -58,6 +59,8 @@ class DmWriter:
             interface.clear_status()
 
         self.options = dfuse.RuntimeOptions()
+        if os.environ.get("FAST"):
+            self.options.flags |= dfuse.RuntimeOptions.Flags.fast
         self.abort_to_idle()
 
     @property
