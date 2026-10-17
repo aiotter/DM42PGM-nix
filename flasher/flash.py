@@ -4,7 +4,7 @@ Reproduce DM42/DM42n Load Program over USB without using USB storage.
 
 Use the same write sequence as Load Program:
 1. Erase the entire application area.
-2. Write the program body and 0xFF padding, leaving the first 16 bytes erased.
+2. Write the body with 0xFF padding only to a 16-byte boundary.
 3. Write the first 16 bytes without erasing again.
 
 The first 16 bytes contain the program header, including its validity marker.
@@ -136,7 +136,8 @@ image = FIRMWARE.read_bytes()
 app_start, app_end = Writer.APP_RANGE
 capacity = app_end - app_start
 assert 16 <= len(image) <= capacity, "Invalid program size"
-image += b"\xff" * (capacity - len(image))
+# Pad only the final programming unit; unused space stays erased.
+image += b"\xff" * (-len(image) % 16)
 
 DfuUtil.match_iface_index = Writer.DFU_INTERFACE
 DfuUtil.match_iface_alt_index = 0

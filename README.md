@@ -46,7 +46,7 @@ Even when sources are overridden with `--override-input`, `nix flake check` buil
 ### Direct USB flashing
 
 The custom flasher in `flasher/` is designed for fast build–test cycles.
-It rewrites only the calculator's application area, completing a flash in about one minute on the tested DM42n.
+It rewrites only the calculator's application area, completing a flash in about 40 seconds on the tested DM42n.
 
 Connect one calculator by USB and select `SETUP` -> `System` -> `Bootloader`.
 To flash the official firmware:
