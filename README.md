@@ -36,7 +36,40 @@ Even when sources are overridden with `--override-input`, `nix flake check` buil
 
 ## Install on a DM42/DM42n
 
+### Load Program from the USB disk
+
 1. Mount your calculator (`SETUP` -> `System` -> `Reset to DMCP menu` -> `Activate USB Disk`).
 2. Copy `result/DM42-***.pgm` (DM42) or `result/DM42-***.pg5` (DM42n) to the calculator's USB disk.
 3. Unmount the USB disk.
 4. Choose `Load Program` on the calculator and select the copied file.
+
+### Direct USB flashing
+
+The custom flasher in `flasher/` is designed for fast build–test cycles.
+It rewrites only the calculator's application area, completing a flash in about one minute on the tested DM42n.
+
+Connect one calculator by USB and select `SETUP` -> `System` -> `Bootloader`.
+To flash the official firmware:
+
+```sh
+nix run .#dm42
+# or, for DM42n:
+nix run .#dm42n
+```
+
+To flash custom firmware, using my Free42 fork as an example:
+
+```sh
+nix run .#dm42n --override-input free42 github:aiotter/dm42-free42
+```
+
+To flash an existing program file without rebuilding it:
+
+```sh
+nix run .#flasher -- path/to/program.pg5
+```
+
+Unlike dfu-util, the flasher follows Load Program's write sequence, marking the program valid only after all data has been written.
+This lets the calculator detect an incomplete update if writing is interrupted.
+
+These commands replace only the program; compatible DMCP and QSPI contents must already be installed.

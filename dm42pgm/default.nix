@@ -40,7 +40,7 @@ stdenv.mkDerivation (
         else
           "sha256-y5gI8B+uw3HIRyZjZb0brGV/HgbLPHCvjVLUzUOjE80=";
 
-      inherit free42-lib;
+      inherit free42-lib firmwareFileName;
 
       # Keep the official sources available for checks when overrideAttrs replaces src or free42-lib.
       original = finalAttrs.finalPackage.overrideAttrs (previousAttrs: {

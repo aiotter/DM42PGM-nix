@@ -42,6 +42,7 @@
         {
           dmcp-stdenv = dmcpToolchain.stdenv;
           dmcp-gcc = dmcpToolchain.gcc;
+          flasher = pkgs.callPackage ./flasher { };
 
           default = pkgs.symlinkJoin {
             name = "DM42PGM";
@@ -65,6 +66,24 @@
 
           dm42n = self.packages.${system}.dm42.override { dmcp5 = true; };
         }
+      );
+
+      apps = lib.genAttrs lib.systems.flakeExposed (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          inherit (self.packages.${system}) flasher;
+          firmwares = { inherit (self.packages.${system}) dm42 dm42n; };
+        in
+        lib.mapAttrs (model: firmware: {
+          type = "app";
+          program = toString (
+            pkgs.writeShellScript "${model}-flash" ''
+              exec ${lib.getExe flasher} \
+                ${lib.escapeShellArg "${firmware}/${firmware.firmwareFileName}"} "$@"
+            ''
+          );
+        }) firmwares
       );
 
       checks = lib.genAttrs lib.systems.flakeExposed (
