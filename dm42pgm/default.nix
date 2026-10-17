@@ -15,7 +15,7 @@ stdenv.mkDerivation (
   let
     firmwareFileName = "${finalAttrs.pname}-${finalAttrs.version}.${if dmcp5 then "pg5" else "pgm"}";
   in
-  rec {
+  {
     __structuredAttrs = true;
 
     pname = "DM42";
@@ -41,14 +41,6 @@ stdenv.mkDerivation (
           "sha256-y5gI8B+uw3HIRyZjZb0brGV/HgbLPHCvjVLUzUOjE80=";
 
       inherit free42-lib firmwareFileName;
-
-      # Keep the official sources available for checks when overrideAttrs replaces src or free42-lib.
-      original = finalAttrs.finalPackage.overrideAttrs (previousAttrs: {
-        inherit src;
-        passthru = previousAttrs.passthru // {
-          free42-lib = finalAttrs.passthru.free42-lib.original;
-        };
-      });
     };
 
     nativeBuildInputs = [

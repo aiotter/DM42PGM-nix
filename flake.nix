@@ -25,19 +25,38 @@
     }:
     let
       inherit (nixpkgs) lib;
-      optionalOverrideAttrs =
-        condition: attrs: package:
-        if condition then package.overrideAttrs attrs else package;
-
-      useFree42Input = free42.outPath != self.outPath;
-      useDm42PgmInput = dm42pgm.outPath != self.outPath;
     in
     {
       packages = lib.genAttrs lib.systems.flakeExposed (
         system:
         let
           pkgs = import nixpkgs { inherit system; };
+          packages = self.packages.${system};
           dmcpToolchain = pkgs.callPackage ./dmcp-toolchain { };
+
+          callPackage = pkgs.newScope {
+            inherit (dmcpToolchain) stdenv;
+            inherit free42-lib;
+          };
+
+          free42-lib = callPackage ./free42 { };
+          dm42 = callPackage ./dm42pgm { dmcp5 = false; };
+          dm42n = callPackage ./dm42pgm { dmcp5 = true; };
+
+          free42Src = if free42.outPath == self.outPath then free42-lib.src else free42;
+          dm42pgmSrc = if dm42pgm.outPath == self.outPath then dm42.src else dm42pgm;
+
+          overrideSrc =
+            firmwarePackage: src:
+            (firmwarePackage.override {
+              free42-lib = free42-lib.overrideAttrs { src = free42Src; };
+            }).overrideAttrs
+              (previousAttrs: {
+                inherit src;
+                passthru = previousAttrs.passthru // {
+                  original = firmwarePackage;
+                };
+              });
         in
         {
           dmcp-stdenv = dmcpToolchain.stdenv;
@@ -46,25 +65,14 @@
 
           default = pkgs.symlinkJoin {
             name = "DM42PGM";
-            paths = with self.packages.${system}; [
-              dm42
-              dm42n
+            paths = [
+              packages.dm42
+              packages.dm42n
             ];
           };
 
-          free42-lib = optionalOverrideAttrs useFree42Input { src = free42; } (
-            pkgs.callPackage ./free42 { stdenv = dmcpToolchain.stdenv; }
-          );
-
-          dm42 = optionalOverrideAttrs useDm42PgmInput { src = dm42pgm; } (
-            pkgs.callPackage ./dm42pgm {
-              stdenv = dmcpToolchain.stdenv;
-              inherit (self.packages.${system}) free42-lib;
-              dmcp5 = false;
-            }
-          );
-
-          dm42n = self.packages.${system}.dm42.override { dmcp5 = true; };
+          dm42 = overrideSrc dm42 dm42pgmSrc;
+          dm42n = overrideSrc dm42n dm42pgmSrc;
         }
       );
 
@@ -72,8 +80,9 @@
         system:
         let
           pkgs = import nixpkgs { inherit system; };
-          inherit (self.packages.${system}) flasher;
-          firmwares = { inherit (self.packages.${system}) dm42 dm42n; };
+          packages = self.packages.${system};
+          inherit (packages) flasher;
+          firmwares = { inherit (packages) dm42 dm42n; };
         in
         lib.mapAttrs (model: firmware: {
           type = "app";
@@ -90,6 +99,7 @@
         system:
         let
           pkgs = import nixpkgs { inherit system; };
+          packages = self.packages.${system};
           checkHash =
             firmwarePackage:
             pkgs.testers.runCommand {
@@ -98,7 +108,7 @@
               script = ''cp ${firmwarePackage}/* "$out"'';
             };
         in
-        with self.packages.${system};
+        with packages;
         {
           dm42 = checkHash dm42.original;
           dm42n = checkHash dm42n.original;
