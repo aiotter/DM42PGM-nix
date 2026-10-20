@@ -93,6 +93,17 @@
             ''
           );
         }) firmwares
+        // {
+          default = {
+            type = "app";
+            program = toString (
+              pkgs.writeShellScript "dm42-select-model" ''
+                echo 'No default app. Specify #dm42 or #dm42n on the flake reference.' >&2
+                exit 1
+              ''
+            );
+          };
+        }
       );
 
       checks = lib.genAttrs lib.systems.flakeExposed (
