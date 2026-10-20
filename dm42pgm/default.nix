@@ -2,6 +2,7 @@
   lib,
   stdenv,
   fetchFromGitHub,
+  callPackage,
 
   perlPackages,
 
@@ -9,6 +10,23 @@
 
   dmcp5 ? true,
 }:
+
+let
+  src = fetchFromGitHub {
+    owner = "swissmicros";
+    repo = "DM42PGM";
+    rev = "3270592f2be6f6d0316e1a0f482a1faecc14aaa9";
+    hash = "sha256-mZvL6kVjaf2FN2s8MfSx9ZNFLD4MFe/r4/zNjifpZcA=";
+  };
+
+  # NAR hashes of the official firmware files for testers.runCommand.
+  # Calculate the hash with, for example:
+  # nix hash path DM42-3.26.pgm
+  expectedFirmwareHash = {
+    dm42 = "sha256-y5gI8B+uw3HIRyZjZb0brGV/HgbLPHCvjVLUzUOjE80=";
+    dm42n = "sha256-wHRDXODOyOjL9DCfI0Gi/saGWFuCKXJH4BsaYRYOEUw=";
+  };
+in
 
 stdenv.mkDerivation (finalAttrs: {
   __structuredAttrs = true;
@@ -20,24 +38,18 @@ stdenv.mkDerivation (finalAttrs: {
     )
   );
 
-  src = fetchFromGitHub {
-    owner = "swissmicros";
-    repo = "DM42PGM";
-    rev = "3270592f2be6f6d0316e1a0f482a1faecc14aaa9";
-    hash = "sha256-mZvL6kVjaf2FN2s8MfSx9ZNFLD4MFe/r4/zNjifpZcA=";
-  };
+  inherit src;
 
   passthru = {
-    # NAR hashes of the official firmware files for testers.runCommand.
-    expectedFirmwareHash =
-      if dmcp5 then
-        "sha256-wHRDXODOyOjL9DCfI0Gi/saGWFuCKXJH4BsaYRYOEUw="
-      else
-        "sha256-y5gI8B+uw3HIRyZjZb0brGV/HgbLPHCvjVLUzUOjE80=";
-
     inherit free42-lib;
 
+    objects = callPackage ./objects.nix {
+      inherit stdenv dmcp5;
+      inherit (finalAttrs) src version makeFlags;
+    };
+
     firmwareFileName = "${finalAttrs.pname}-${finalAttrs.version}.${if dmcp5 then "pg5" else "pgm"}";
+    expectedFirmwareHash = with expectedFirmwareHash; if dmcp5 then dm42n else dm42;
   };
 
   nativeBuildInputs = [
@@ -51,16 +63,13 @@ stdenv.mkDerivation (finalAttrs: {
     "TARGET=${finalAttrs.pname}-${finalAttrs.version}"
   ];
 
-  prePatch = lib.optionalString dmcp5 "cat patch/dmcp5_*.patch | patch -p2";
-  postPatch = ''
-    patchShebangs --build bin
+  # Nix gives sources and objects the same fixed timestamp in the store.
+  # Preserve it when copying so Make does not see prerequisites as newer
+  # than the cached objects and recompile them.
+  unpackCmd = "cp -a ${finalAttrs.passthru.objects} source";
 
-    # The official firmware is built from the code before license headers are added.
-    # Removing these headers produced a binary identical to the official firmware.
-    find . -type f \( -name '*.c' -o -name '*.cc' -o -name '*.h' -o -name '*.s' \) \
-      -exec gawk -i inplace -f ${./strip-license-headers.awk} {} +
-
-    cp ${finalAttrs.passthru.free42-lib}/{libfree42_bcd.a,libfree42_bcd_rel.a} lib
+  preBuild = ''
+    cp "${finalAttrs.passthru.free42-lib}"/{libfree42_bcd.a,libfree42_bcd_rel.a} lib
   '';
 
   installPhase = ''
